@@ -50,6 +50,29 @@ documentation in this repository, even though the repository is a personal fork.
 - If a tracked file needs a placeholder, use generic values such as `nas.example`,
   `/path/to/library`, or `192.0.2.1`.
 
+## Database schema: avoid migrations
+
+Keeping the database schema identical to upstream is what makes merging upstream
+releases into this fork cheap. Treat schema changes as a last resort.
+
+1. **Prefer designs that need no migration.** Before proposing a schema change, look for
+   an alternative: existing columns (including JSON/metadata columns), existing tables,
+   config, files on disk, derived data computed at runtime, or an external service.
+2. **Never add a migration silently.** If a feature genuinely requires a schema change,
+   stop and tell the user before writing it. Explain why no migration-free design works,
+   what the change is, and its impact: it is applied one-way to the production database,
+   it can conflict with upstream migrations on every future upstream merge, and it must
+   be maintained on this fork forever. Only proceed after the user explicitly opts in.
+3. **When a change is approved, add rather than modify.** New tables (with a
+   fork-specific prefix or suffix in the name) are safer than altering upstream tables.
+   Do not add, rename, or drop columns on upstream tables, change constraints, or change
+   indexes on them unless the user has explicitly agreed to that specific change.
+4. **Keep fork migrations separable.** Put them in clearly named files so they can be
+   identified, reordered, or removed when merging upstream. Never edit or renumber an
+   upstream migration.
+5. Schema-affecting code lives under `server/src/schema/` (tables, migrations). Changes
+   there should be rare, deliberate, and called out in the PR description.
+
 ## Workflow
 
 - Development happens on feature branches with PRs against `main` **of this fork**.
