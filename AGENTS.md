@@ -73,6 +73,36 @@ releases into this fork cheap. Treat schema changes as a last resort.
 5. Schema-affecting code lives under `server/src/schema/` (tables, migrations). Changes
    there should be rare, deliberate, and called out in the PR description.
 
+## Existing data and derived work are precious
+
+The production instance holds large libraries (including external libraries) whose
+derived data took a very long time to compute. Do not make changes that discard or
+invalidate that work.
+
+1. **Never break existing data.** Changes must keep existing assets, albums, people,
+   external libraries, and imported metadata intact and readable. No change may cause
+   assets to be re-imported, orphaned, or treated as new.
+2. **Heavy derived data must not be invalidated.** The following are expensive
+   (hours to days of processing across the library) and must not be triggered, reset,
+   or made stale as a side effect of a change:
+   - preview/thumbnail generation (`thumbnailGeneration`)
+   - machine-learning analysis: smart search embeddings (`smartSearch`), face detection
+     and facial recognition (`faceDetection`, `facialRecognition`)
+   - video transcoding (`videoConversion`)
+   - duplicate detection and other whole-library recomputations
+   This includes anything that changes how existing derived files are named, located,
+   hashed, or matched, changes the ML model or preview settings, changes which assets a
+   job considers "done", or bumps a version/checksum that queues a full re-run.
+3. **Light re-processing is acceptable** when it is genuinely needed: metadata
+   extraction from EXIF/XMP sidecars, library scans that only detect new or changed
+   files, and similar cheap operations. Still say so in the PR description.
+4. **Call out any re-processing explicitly.** If a change could queue work on existing
+   assets, state in the PR which job(s), whether it affects all assets or only new ones,
+   and a rough cost. If it would trigger any of the heavy jobs above, stop and get the
+   user's explicit opt-in first, exactly as with database migrations.
+5. **Prefer additive, forward-only behaviour.** New features should apply to new assets
+   or run on demand for selected assets, not silently rewrite the whole library.
+
 ## Workflow
 
 - Development happens on feature branches with PRs against `main` **of this fork**.
