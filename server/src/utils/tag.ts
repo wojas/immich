@@ -3,9 +3,9 @@ import { TagRepository } from 'src/repositories/tag.repository';
 
 /**
  * Fork-specific: XMP color labels (xmp:Label) are imported as hierarchical tags under this parent,
- * e.g. `Color Label/Green`, so they can be filtered in the UI without any schema or UI changes.
+ * e.g. `ColorLabel/Green`, so they can be filtered in the UI without any schema or UI changes.
  */
-export const COLOR_LABEL_TAG_PREFIX = 'Color Label';
+export const COLOR_LABEL_TAG_PREFIX = 'ColorLabel';
 
 export const toColorLabelTag = (label: string) => `${COLOR_LABEL_TAG_PREFIX}/${label.trim().replaceAll('/', '|')}`;
 

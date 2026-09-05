@@ -488,24 +488,24 @@ describe(MetadataService.name, () => {
     it('should extract a color label as a hierarchical tag', async () => {
       const asset = AssetFactory.create();
       mocks.assetJob.getForMetadataExtraction.mockResolvedValue(getForMetadataExtraction(asset));
-      mocks.asset.getForMetadataExtractionTags.mockResolvedValue({ tags: ['Color Label/Green'] });
+      mocks.asset.getForMetadataExtractionTags.mockResolvedValue({ tags: ['ColorLabel/Green'] });
       mockReadTags({ Label: 'Green' });
-      mocks.tag.upsertValue.mockResolvedValueOnce({ ...tagStub.parentUpsert, value: 'Color Label' });
-      mocks.tag.upsertValue.mockResolvedValueOnce({ ...tagStub.childUpsert, value: 'Color Label/Green' });
+      mocks.tag.upsertValue.mockResolvedValueOnce({ ...tagStub.parentUpsert, value: 'ColorLabel' });
+      mocks.tag.upsertValue.mockResolvedValueOnce({ ...tagStub.childUpsert, value: 'ColorLabel/Green' });
 
       await sut.handleMetadataExtraction({ id: asset.id });
 
       expect(mocks.asset.upsertExif).toHaveBeenCalledWith(
-        expect.objectContaining({ exif: expect.objectContaining({ tags: ['Color Label/Green'] }) }),
+        expect.objectContaining({ exif: expect.objectContaining({ tags: ['ColorLabel/Green'] }) }),
       );
       expect(mocks.tag.upsertValue).toHaveBeenNthCalledWith(1, {
         userId: asset.ownerId,
-        value: 'Color Label',
+        value: 'ColorLabel',
         parentId: undefined,
       });
       expect(mocks.tag.upsertValue).toHaveBeenNthCalledWith(2, {
         userId: asset.ownerId,
-        value: 'Color Label/Green',
+        value: 'ColorLabel/Green',
         parentId: 'tag-parent',
       });
     });
@@ -519,7 +519,7 @@ describe(MetadataService.name, () => {
       await sut.handleMetadataExtraction({ id: asset.id });
 
       expect(mocks.asset.upsertExif).toHaveBeenCalledWith(
-        expect.objectContaining({ exif: expect.objectContaining({ tags: ['Parent/Child', 'Color Label/Blue'] }) }),
+        expect.objectContaining({ exif: expect.objectContaining({ tags: ['Parent/Child', 'ColorLabel/Blue'] }) }),
       );
     });
 
@@ -2077,7 +2077,7 @@ describe(MetadataService.name, () => {
 
     it('should not write color label tags to TagsList', async () => {
       const asset = AssetFactory.from().file({ type: AssetFileType.Sidecar }).exif().build();
-      asset.exifInfo.tags = ['Parent/Child', 'Color Label/Green'];
+      asset.exifInfo.tags = ['Parent/Child', 'ColorLabel/Green'];
 
       mocks.assetJob.getLockedPropertiesForMetadataExtraction.mockResolvedValue(['tags']);
       mocks.assetJob.getForSidecarWriteJob.mockResolvedValue(getForSidecarWrite(asset));
