@@ -34,6 +34,22 @@ merged upstream**. The upstream project does not accept AI-written pull requests
 6. Never file issues, discussions, or comments on `immich-app/immich`, and never run
    `gh repo fork`, `gh repo sync`, or similar commands against the upstream project.
 
+## Hard rule: never disclose local deployment information
+
+The fork owner runs this software on private infrastructure. Details about that
+deployment (host names, IP addresses, ports, paths, volume layouts, container names,
+credentials, versions in use, network topology, deploy scripts) must **never** appear in
+any commit, commit message, pull request, issue, code comment, test fixture, or
+documentation in this repository, even though the repository is a personal fork.
+
+- Those details live only in `CLAUDE.local.md` at the repo root (excluded from git via
+  `.git/info/exclude`) and in files outside this repository. Read them when working on
+  deployment; never copy them into tracked files.
+- Never commit `CLAUDE.local.md`, `.env` files, or anything else that describes the
+  deployment. If it is unclear whether something counts, treat it as private.
+- If a tracked file needs a placeholder, use generic values such as `nas.example`,
+  `/path/to/library`, or `192.0.2.1`.
+
 ## Workflow
 
 - Development happens on feature branches with PRs against `main` **of this fork**.
