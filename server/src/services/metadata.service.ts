@@ -36,7 +36,7 @@ import { isAssetChecksumConstraint } from 'src/utils/database';
 import { mergeTimeZone } from 'src/utils/date';
 import { mimeTypes } from 'src/utils/mime-types';
 import { batched, isFaceImportEnabled } from 'src/utils/misc';
-import { upsertTags } from 'src/utils/tag';
+import { isColorLabelTag, toColorLabelTag, upsertTags } from 'src/utils/tag';
 import { Tasks } from 'src/utils/tasks';
 
 const POSTGRES_INT_MAX = 2_147_483_647;
@@ -506,7 +506,8 @@ export class MetadataService extends BaseService {
         GPSLatitude: latitude,
         GPSLongitude: longitude,
         Rating: rating,
-        TagsList: tags,
+        // fork-specific: color label tags are derived from xmp:Label and must not be written back as keywords
+        TagsList: tags && tags.filter((tag) => !isColorLabelTag(tag)),
       },
       _.isUndefined,
     );
@@ -644,6 +645,13 @@ export class MetadataService extends BaseService {
     } else {
       tags = [];
     }
+
+    // fork-specific: expose the XMP color label (xmp:Label) as a hierarchical tag
+    const label = exifTags.Label;
+    if (typeof label === 'string' && label.trim().length > 0) {
+      tags.push(toColorLabelTag(label));
+    }
+
     return tags;
   }
 
