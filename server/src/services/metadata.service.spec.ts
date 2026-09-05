@@ -485,6 +485,57 @@ describe(MetadataService.name, () => {
       expect(mocks.tag.upsertValue).toHaveBeenCalledWith({ userId: asset.ownerId, value: '2024', parent: undefined });
     });
 
+    it('should extract a color label as a hierarchical tag', async () => {
+      const asset = AssetFactory.create();
+      mocks.assetJob.getForMetadataExtraction.mockResolvedValue(getForMetadataExtraction(asset));
+      mocks.asset.getForMetadataExtractionTags.mockResolvedValue({ tags: ['Color Label/Green'] });
+      mockReadTags({ Label: 'Green' });
+      mocks.tag.upsertValue.mockResolvedValueOnce({ ...tagStub.parentUpsert, value: 'Color Label' });
+      mocks.tag.upsertValue.mockResolvedValueOnce({ ...tagStub.childUpsert, value: 'Color Label/Green' });
+
+      await sut.handleMetadataExtraction({ id: asset.id });
+
+      expect(mocks.asset.upsertExif).toHaveBeenCalledWith(
+        expect.objectContaining({ exif: expect.objectContaining({ tags: ['Color Label/Green'] }) }),
+      );
+      expect(mocks.tag.upsertValue).toHaveBeenNthCalledWith(1, {
+        userId: asset.ownerId,
+        value: 'Color Label',
+        parentId: undefined,
+      });
+      expect(mocks.tag.upsertValue).toHaveBeenNthCalledWith(2, {
+        userId: asset.ownerId,
+        value: 'Color Label/Green',
+        parentId: 'tag-parent',
+      });
+    });
+
+    it('should append the color label to existing tags and prefer the sidecar label', async () => {
+      const asset = AssetFactory.from().file({ type: AssetFileType.Sidecar }).build();
+      mocks.assetJob.getForMetadataExtraction.mockResolvedValue(getForMetadataExtraction(asset));
+      mocks.asset.getForMetadataExtractionTags.mockResolvedValue({ tags: [] });
+      mockReadTags({ TagsList: ['Parent/Child'], Label: 'Red' }, { Label: ' Blue ' });
+
+      await sut.handleMetadataExtraction({ id: asset.id });
+
+      expect(mocks.asset.upsertExif).toHaveBeenCalledWith(
+        expect.objectContaining({ exif: expect.objectContaining({ tags: ['Parent/Child', 'Color Label/Blue'] }) }),
+      );
+    });
+
+    it('should ignore an empty color label', async () => {
+      const asset = AssetFactory.create();
+      mocks.assetJob.getForMetadataExtraction.mockResolvedValue(getForMetadataExtraction(asset));
+      mocks.asset.getForMetadataExtractionTags.mockResolvedValue({ tags: [] });
+      mockReadTags({ Label: '  ' });
+
+      await sut.handleMetadataExtraction({ id: asset.id });
+
+      expect(mocks.asset.upsertExif).toHaveBeenCalledWith(
+        expect.objectContaining({ exif: expect.objectContaining({ tags: null }) }),
+      );
+    });
+
     it('should extract hierarchal tags from Keywords', async () => {
       const asset = AssetFactory.create();
       mocks.assetJob.getForMetadataExtraction.mockResolvedValue(getForMetadataExtraction(asset));
@@ -2022,6 +2073,16 @@ describe(MetadataService.name, () => {
         'dateTimeOriginal',
         'timeZone',
       ]);
+    });
+
+    it('should not write color label tags to TagsList', async () => {
+      const asset = AssetFactory.from().file({ type: AssetFileType.Sidecar }).exif().build();
+      asset.exifInfo.tags = ['Parent/Child', 'Color Label/Green'];
+
+      mocks.assetJob.getLockedPropertiesForMetadataExtraction.mockResolvedValue(['tags']);
+      mocks.assetJob.getForSidecarWriteJob.mockResolvedValue(getForSidecarWrite(asset));
+      await expect(sut.handleSidecarWrite({ id: asset.id })).resolves.toBe(JobStatus.Success);
+      expect(mocks.metadata.writeTags).toHaveBeenCalledWith(asset.files[0].path, { TagsList: ['Parent/Child'] });
     });
 
     it('should write rating', async () => {
